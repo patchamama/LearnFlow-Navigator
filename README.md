@@ -13,6 +13,8 @@
 
 A standalone, offline-first course viewer for folders of exported HTML course content (e.g. Rise 360 exports). Point it at a course folder and it builds a single self-contained `index.html` reader — no web server, no framework, no external services required.
 
+**[Live demo](https://patchamama.github.io/LearnFlow-Navigator/)** — a 3-chapter Python tutorial served as a static reader, showing the chapter timeline, navigation, and notes panel (the optional search backend needs a local server, so it isn't part of this static demo).
+
 ## Features
 
 - **Course-style chapter timeline** — numbered nodes, completion ticks, and a collapsible course panel with **Chapters** and **Course files** tabs.
