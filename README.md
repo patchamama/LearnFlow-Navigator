@@ -13,7 +13,7 @@
 
 A standalone, offline-first course viewer for folders of exported HTML course content (e.g. Rise 360 exports). Point it at a course folder and it builds a single self-contained `index.html` reader — no web server, no framework, no external services required.
 
-**[Live demo](https://patchamama.github.io/LearnFlow-Navigator/)** — a 3-chapter Python tutorial served as a static reader, showing the chapter timeline, navigation, and notes panel (the optional search backend needs a local server, so it isn't part of this static demo).
+**[Live demo](https://patchamama.github.io/LearnFlow-Navigator/)** — a Python tutorial served as a static reader: three HTML chapters plus a Markdown chapter showing off syntax-highlighted code blocks, chapter timeline, navigation, and notes panel. Search works there too — no backend is running, so it falls back to an in-browser, case-insensitive search across chapter text.
 
 ## Install
 
@@ -34,11 +34,12 @@ Both install into `./LearnFlow-Navigator` by default (pass a folder name as an a
 ## Features
 
 - **Course-style chapter timeline** — numbered nodes, completion ticks, and a collapsible course panel with **Chapters** and **Course files** tabs.
-- **Automatic structure detection** — folders prefixed with a number (e.g. `01 Introduction`) become modules and expand to reveal their chapters; non-module folders and root-level `.txt`/`.md` files are grouped under **Course files**.
-- **Full navigation** — First / Previous / Next / Last controls, automatic chapter completion on scroll-to-end, and light/dark themes.
+- **Automatic structure detection** — folders prefixed with a number (e.g. `01 Introduction`) become modules and expand to reveal their chapters; non-module folders and root-level `.txt` files are grouped under **Course files**.
+- **Markdown chapters** — drop a `.md` file anywhere a `.html` chapter could go (root or inside a numbered module) and it becomes a chapter too, numbered and titled the same way. It's rendered client-side, with syntax highlighting for fenced code blocks (`python`, `php`, `java`, `go`, `javascript`, `xml`, `html`, `json`, `bash`, …) — no backend needed.
+- **Full navigation** — First / Previous / Next / Last controls, automatic chapter completion on scroll-to-end, and a light/dark theme that also follows your system preference for content pages (including the bundled Python demo chapters).
 - **Local notes** — Markdown edit/preview, maximize, quick task/callout insertion, `.md` import/export. Notes, theme, tasks, and completion state live only in the browser's `localStorage` and never touch the course content.
-- **Optional local search backend** — a lightweight Python server adds full-text search (SQLite FTS5) over the indexed course content, with an optional multilingual semantic reranker for cross-language matching.
-- **Optional AI course assistant** — ask questions about the course; answers are grounded in retrieved course excerpts (RAG-style) via Ollama, OpenAI, or Anthropic.
+- **Search, with or without a backend** — with the local backend running, search uses SQLite FTS5 plus an optional multilingual semantic reranker for cross-language matching. Without a backend (e.g. this project's own GitHub Pages demo, or `index.html` opened directly), search automatically falls back to an in-browser, case-insensitive scan of each chapter's text.
+- **Optional AI course assistant** — ask questions about the course; answers are grounded in retrieved course excerpts (RAG-style) via Ollama, OpenAI, or Anthropic. Requires the local backend.
 
 ## Quick start
 
@@ -78,9 +79,11 @@ Use one of these launchers instead of opening `index.html` directly:
 start.bat        # Windows
 ```
 
-They (re)build `index.html`, install `requirements.txt`, build a local SQLite course index, and start the backend at `http://localhost:8765`. When the page detects the backend it shows a **Search course** option that searches indexed content and jumps to the matching chapter.
+They (re)build `index.html`, install `requirements.txt`, build a local SQLite course index, and start the backend at `http://localhost:8765`.
 
 The optional `sentence-transformers` dependency downloads the multilingual `paraphrase-multilingual-MiniLM-L12-v2` model on first indexing, enabling a compact local semantic/RAG-style reranker so questions in one supported language can match content written in another. If it can't be installed or downloaded, the SQLite FTS lexical search remains available as a fallback (without cross-language matching).
+
+**Without this backend** — opening `index.html` directly, or a static deployment like GitHub Pages — the **Search course** option still works: it fetches each chapter's own content in the browser and does a case-insensitive text search across them, showing the matching snippet. It's plain substring matching, not semantic, and needs the chapters to be reachable over `http(s)` (a bare `file://` open can't `fetch()` sibling files, so search has nothing to read from in that specific case).
 
 `start.bat` / `start.sh` use only the Python standard library by default. Add `--semantic` to also install the optional multilingual embedding dependency:
 
@@ -112,10 +115,10 @@ In **Settings**, choose a provider (Ollama, OpenAI, or Anthropic) and an API key
 
 `course_viewer.py` is a single Python stdlib script (only optional dependency: `sentence-transformers`) that:
 
-1. Scans the course folder for chapter HTML exports and numeric-prefixed module folders, and builds a JSON manifest of the course structure.
+1. Scans the course folder for chapter HTML/Markdown exports and numeric-prefixed module folders, and builds a JSON manifest of the course structure.
 2. Renders a single-page HTML/CSS/JS reader with that manifest embedded, so the result is fully self-contained and works by opening the file directly.
-3. Injects a small same-origin helper script (`course-reader-chapter-tools.js`) into each exported chapter so the viewer can control the embedded chapter's sidebar/navigation from the parent page.
-4. Optionally serves the folder with `http.server` plus a few JSON endpoints (`/api/search`, `/api/ask`, `/api/models`, `/api/settings`) backed by a local SQLite FTS5 index, for search and the AI assistant.
+3. Injects a small same-origin helper script (`course-reader-chapter-tools.js`) into each exported HTML chapter so the viewer can control the embedded chapter's sidebar/navigation from the parent page. Markdown chapters don't need this — they're fetched and rendered client-side into the reader's iframe, with syntax highlighting for fenced code blocks.
+4. Optionally serves the folder with `http.server` plus a few JSON endpoints (`/api/search`, `/api/ask`, `/api/models`, `/api/settings`) backed by a local SQLite FTS5 index, for search and the AI assistant. Without that backend, the frontend searches chapter text itself instead of showing an error.
 
 See `CLAUDE.md` for a deeper architecture walkthrough.
 

@@ -74,8 +74,132 @@ APP = r'''<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name=
 const data=__DATA__,key='course-reader-v2',$=id=>document.getElementById(id);let activeChapterDoc=null,sidebarHidden=false,skipPositionRestore=false;localStorage.setItem('course-reader-sidebar-hidden','0');function syncSidebarButton(){ $('hideInner').textContent=sidebarHidden?'Show sidebar':'Hide sidebar';$('hideInner').classList.toggle('active',sidebarHidden) }function applySidebarState(){ if(sidebarHidden)$('frame').contentWindow?.postMessage({courseReaderAction:'setSidebarHidden',hidden:true},'*') }let state=JSON.parse(localStorage.getItem(key)||'{"read":[],"notes":"","theme":"light"}'),current=Math.max(0,Number(localStorage.getItem('course-reader-current')||0));const chapters=data.chapters;const positions=JSON.parse(localStorage.getItem('course-reader-positions')||'{}');const aiKey='course-reader-ai-v1';let ai=JSON.parse(localStorage.getItem(aiKey)||'{"provider":"ollama","apiKey":"","model":"","language":"German","bg":"white","width":"100%","font":"system-ui","size":"14px"}');
 function esc(s){return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}function save(){localStorage.setItem(key,JSON.stringify(state))}function taskCount(){return(state.notes.match(/- \[ \]/g)||[]).length}function updateNotes(sync=true){let n=taskCount();$('badge').textContent=n;$('taskText').textContent=`${n} open task${n==1?'':'s'}`;if(sync)$('editor').value=state.notes}function renderMD(md){let h=esc(md).replace(/^### (.*)$/gm,'<h3>$1</h3>').replace(/^## (.*)$/gm,'<h2>$1</h2>').replace(/^# (.*)$/gm,'<h1>$1</h1>').replace(/^&gt; \[!(TIP|NOTE|WARNING|IMPORTANT)\]\n((?:&gt; .*\n?)*)/gm,(_,t,b)=>`<blockquote><b>${t}</b><br>${b.replace(/^&gt; ?/gm,'')}</blockquote>`).replace(/^- \[ \] (.*)$/gm,'☐ $1').replace(/^- \[x\] (.*)$/gmi,'☑ $1').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/`(.+?)`/g,'<code>$1</code>').replace(/\n/g,'<br>');return h}function setTheme(){document.documentElement.classList.toggle('dark',state.theme==='dark');$('theme').textContent=state.theme==='dark'?'☀':'☾'}
 function chapterHTML(items){let r=new Set(state.read);return `<ol class="chapters">${items.map(c=>`<li><button class="chapter ${c.id===current?'active':''} ${r.has(c.path)?'read':''}" data-id="${c.id}"><span class="node">${r.has(c.path)?'✓':c.order}</span><span><span class="chapter-title">${c.title}</span><small>${r.has(c.path)?'Completed':'Chapter '+c.order}</small></span></button></li>`).join('')}</ol>`}function render(){let root=chapters.filter(x=>!x.module),mods=data.modules;$('chapterList').innerHTML=chapterHTML(root)+mods.map(m=>`<details class="module" open><summary>▣ ${m.name} <small>(${m.chapters.length} chapters)</small>${chapterHTML(m.chapters)}</details>`).join('')||'<p class="hint">No chapters found.</p>';$('chapterList').querySelectorAll('.chapter').forEach(b=>b.onclick=()=>openChapter(+b.dataset.id));$('fileList').innerHTML=fileGroups(data.courseFiles,'Course files')+mods.map(m=>fileGroups(m.files,`Files · ${m.name}`)).join('')||'<p class="hint">No course files found.</p>';let done=new Set(state.read).size;$('progress').style.width=`${chapters.length?done/chapters.length*100:0}%`;$('progressCopy').textContent=`${done} of ${chapters.length} chapters completed`;$('title').textContent=chapters[current]?.title||'No chapters found';$('meta').textContent=chapters.length?`Chapter ${current+1} of ${chapters.length}`:'';$('first').disabled=!chapters.length||current===0;$('prev').disabled=!chapters.length||current===0;$('next').disabled=!chapters.length||current===chapters.length-1;$('last').disabled=!chapters.length||current===chapters.length-1;$('bottomPrev').disabled=!chapters.length||current===0;$('bottomNext').disabled=!chapters.length||current===chapters.length-1}function fileGroups(groups,label){return `<details class="filegroup" open><summary>📁 ${label}</summary>${groups.map(g=>`<details class="filegroup"><summary>📂 ${g.name}</summary>${g.files.map(f=>`<a class="file" href="${f.path}" target="_blank">${f.name}</a>`).join('')}</details>`).join('')}</details>`}
-function openChapter(i,opts){if(!chapters.length)return;current=Math.max(0,Math.min(i,chapters.length-1));skipPositionRestore=!!(opts&&opts.skipRestore);localStorage.setItem('course-reader-current',current);$('frame').src=chapters[current].path;render()}function complete(){let c=chapters[current];if(c&&!state.read.includes(c.path)){state.read.push(c.path);save();render()}}$('frame').addEventListener('load',()=>{setTimeout(()=>{syncSidebarButton();applySidebarState()},500);setTimeout(()=>{try{let d=$('frame').contentDocument;activeChapterDoc=d;let w=$('frame').contentWindow,check=()=>{let e=d.scrollingElement;if(e&&e.scrollTop+e.clientHeight>=e.scrollHeight-8)complete()};let savePosition=()=>{let y=w.scrollY||w.pageYOffset||d.scrollingElement?.scrollTop||d.documentElement?.scrollTop||d.body?.scrollTop||0;positions[chapters[current].path]=y;localStorage.setItem('course-reader-positions',JSON.stringify(positions));check()};w.addEventListener('scroll',savePosition,{passive:true});d.addEventListener('scroll',savePosition,{passive:true,capture:true});w.addEventListener('beforeunload',savePosition);let saved=skipPositionRestore?0:positions[chapters[current].path];skipPositionRestore=false;if(saved)setTimeout(()=>{w.scrollTo(0,saved);d.scrollingElement&&(d.scrollingElement.scrollTop=saved)},900);check();let installNav=()=>{if(d.querySelector('.nav-sidebar__content,[class*="nav-sidebar"]'))$('hideInner').classList.add('available');applyAppearance();};installNav();setTimeout(installNav,1200);let end=d.createElement('div');end.innerHTML='<button data-course-nav="prev">← Previous</button><button data-course-nav="next">Next →</button>';end.style.cssText='position:fixed;bottom:14px;right:18px;z-index:999999;display:flex;gap:8px';end.querySelectorAll('button').forEach(b=>b.style.cssText='padding:9px 13px;border:0;border-radius:7px;background:#3867f4;color:white;font:600 14px sans-serif;cursor:pointer');end.onclick=e=>{let x=e.target.dataset.courseNav;if(x)parent.postMessage({courseNav:x},'*')};d.body.append(end)}catch(e){}},300)});window.addEventListener('message',e=>{if(e.data?.courseNav==='next')openChapter(current+1);if(e.data?.courseNav==='prev')openChapter(current-1);if(Number.isInteger(e.data?.courseReaderNavigateIndex))openChapter(e.data.courseReaderNavigateIndex);if(e.data?.courseReaderAction==='toggleSidebarHidden')$('hideInner').click();if(e.data?.courseReaderSidebar!==undefined){let hidden=e.data.courseReaderSidebar;sidebarHidden=hidden;localStorage.setItem('course-reader-sidebar-hidden',hidden?'1':'0');$('hideInner').dataset.hidden=hidden?'true':'false';$('hideInner').classList.toggle('active',hidden);$('hideInner').textContent=hidden?'Show sidebar':'Hide sidebar'};});
-async function search(){let q=$('modalSearchInput').value.trim();if(!q)return;let box=$('searchBoxResults');box.textContent='Searching…';try{if($('aiSearch').checked&&ai.model){let r=await fetch('/api/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...ai,question:q})}),d=await r.json();box.textContent=d.answer||d.error;return}let r=await fetch('/api/search?q='+encodeURIComponent(q)),d=await r.json();box.innerHTML=d.results.length?d.results.map(x=>`<button class="result" data-path="${x.path}"><b>${x.title}</b><small>${x.snippet}</small></button>`).join(''):'No matching course content.';box.querySelectorAll('.result').forEach(b=>b.onclick=()=>{let i=chapters.findIndex(c=>c.path===b.dataset.path);if(i>=0)openChapter(i,{skipRestore:true});$('searchModal').classList.remove('open')})}catch(e){box.textContent='Search failed: '+e.message}}$('searchToggle').onclick=()=>{let configured=Boolean(ai.model);$('aiSearchOption').hidden=!configured;$('aiSearch').checked=configured;$('searchModal').classList.add('open');$('modalSearchInput').focus()};$('searchClose').onclick=()=>$('searchModal').classList.remove('open');$('modalSearchGo').onclick=search;$('modalSearchInput').onkeydown=e=>{if(e.key==='Enter')search()};document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{document.querySelectorAll('.tab,.pane').forEach(x=>x.classList.remove('active'));t.classList.add('active');$(t.dataset.pane).classList.add('active')});$('hideInner').onclick=()=>{sidebarHidden=!sidebarHidden;localStorage.setItem('course-reader-sidebar-hidden',sidebarHidden?'1':'0');syncSidebarButton();$('frame').contentWindow?.postMessage({courseReaderAction:'setSidebarHidden',hidden:sidebarHidden},'*')};const app=document.querySelector('.app'),resize=$('resizer');$('collapse').onclick=()=>{app.classList.toggle('panelCollapsed');$('collapse').textContent=app.classList.contains('panelCollapsed')?'☰':'×'};let resizing=false;resize.onpointerdown=e=>{resizing=true;resize.classList.add('dragging');resize.setPointerCapture(e.pointerId)};resize.onpointermove=e=>{if(resizing){let width=Math.max(220,Math.min(620,e.clientX));app.style.gridTemplateColumns=`${width}px 7px 1fr`;localStorage.setItem('course-panel-width',width)}};resize.onpointerup=()=>{resizing=false;resize.classList.remove('dragging')};let savedWidth=localStorage.getItem('course-panel-width');if(savedWidth)app.style.gridTemplateColumns=`${savedWidth}px 7px 1fr`;$('bottomPrev').onclick=()=>openChapter(current-1);$('bottomNext').onclick=()=>openChapter(current+1);$('first').onclick=()=>openChapter(0);$('prev').onclick=()=>openChapter(current-1);$('next').onclick=()=>openChapter(current+1);$('last').onclick=()=>openChapter(chapters.length-1);$('theme').onclick=()=>{state.theme=state.theme==='dark'?'light':'dark';save();setTheme()};$('notesOpen').onclick=()=>$('notes').classList.add('open');$('notesClose').onclick=()=>$('notes').classList.remove('open');$('maximize').onclick=()=>$('notes').classList.toggle('max');$('editMode').onclick=()=>{$('editor').style.display='block';$('preview').style.display='none'};$('previewMode').onclick=()=>{$('preview').innerHTML=renderMD(state.notes);$('editor').style.display='none';$('preview').style.display='block'};$('editor').oninput=()=>{state.notes=$('editor').value;save();updateNotes(false)};function insert(x){let e=$('editor'),p=e.selectionStart;e.setRangeText(x,p,e.selectionEnd,'end');e.focus();state.notes=e.value;save();updateNotes(false)}$('addTask').onclick=()=>insert('- [ ] ');$('addCallout').onclick=()=>insert('> [!NOTE]\n> ');$('helpBtn').onclick=()=>$('help').classList.toggle('open');$('export').onclick=()=>{let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([state.notes],{type:'text/markdown'}));a.download='course-notes.md';a.click();URL.revokeObjectURL(a.href)};$('import').onclick=()=>$('importFile').click();$('importFile').onchange=e=>{let f=e.target.files[0];if(f){let r=new FileReader;r.onload=()=>{state.notes=r.result;save();updateNotes()};r.readAsText(f)}};document.onkeydown=e=>{if(e.altKey&&e.key==='ArrowRight')openChapter(current+1);if(e.altKey&&e.key==='ArrowLeft')openChapter(current-1)};function applyAppearance(){let r=document.querySelector('.reader');r.classList.remove('reader-white','reader-caramel','reader-black');r.classList.add('reader-'+(ai.bg||'white'));r.style.setProperty('--content-width',ai.width||'100%');r.style.setProperty('--reader-font',ai.font||'system-ui');r.style.setProperty('--reader-size',ai.size||'14px');try{let d=$('frame').contentDocument,st=d.getElementById('readerAppearance')||d.head.appendChild(d.createElement('style'));st.id='readerAppearance';st.textContent=`body{max-width:${ai.width||'100%'}!important;margin:0 auto!important;font-family:${ai.font||'system-ui'}!important;font-size:${ai.size||'14px'}!important}` }catch(e){}}function saveAI(){ai={provider:$('provider').value,apiKey:$('apiKey').value,model:$('model').value,language:$('courseLanguage').value,bg:$('readerBg').value,width:$('contentWidth').value,font:$('readerFont').value,size:$('readerSize').value};localStorage.setItem(aiKey,JSON.stringify(ai));if($('saveBackend').checked)fetch('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(ai)})}function fillAI(){ $('provider').value=ai.provider;$('apiKey').value=ai.apiKey;$('courseLanguage').value=ai.language;$('readerBg').value=ai.bg||'white';$('contentWidth').value=ai.width||'100%';$('readerFont').value=ai.font||'system-ui';$('readerSize').value=ai.size||'14px';applyAppearance()}$('settings').onclick=async()=>{$('settingsPanel').classList.toggle('open');fillAI();try{let r=await fetch('/api/settings'),d=await r.json();if(d.provider){ai=d;fillAI();$('saveBackend').checked=true}}catch(e){}};$('loadModels').onclick=async()=>{saveAI();$('model').innerHTML='<option>Loading…</option>';try{let r=await fetch('/api/models',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(ai)}),d=await r.json();if(d.error)throw Error(d.error);$('model').innerHTML=d.models.map(x=>`<option>${x}</option>`).join('');if(ai.model)$('model').value=ai.model;$('answer').textContent='Connection successful.'}catch(e){$('answer').textContent='Connection failed: '+e.message}};['readerBg','contentWidth','readerFont','readerSize'].forEach(id=>$(id).onchange=()=>{saveAI();applyAppearance()});$('ask').onclick=async()=>{saveAI();let q=$('question').value.trim();if(!q)return;$('answer').textContent='Thinking with course context…';try{let r=await fetch('/api/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...ai,question:q})}),d=await r.json();$('answer').textContent=d.answer||d.error}catch(e){$('answer').textContent='Request failed: '+e.message}};setTheme();updateNotes();applyAppearance();syncSidebarButton();render();openChapter(current);
+function openChapter(i,opts){if(!chapters.length)return;current=Math.max(0,Math.min(i,chapters.length-1));skipPositionRestore=!!(opts&&opts.skipRestore);localStorage.setItem('course-reader-current',current);let path=chapters[current].path;if(/\.md$/i.test(path)){$('frame').removeAttribute('src');fetch(path).then(r=>r.text()).then(md=>{$('frame').srcdoc=renderMarkdownPage(md,chapters[current].title)}).catch(()=>{$('frame').srcdoc='<p>Could not load '+esc(path)+'</p>'})}else{$('frame').removeAttribute('srcdoc');$('frame').src=path}render()}function complete(){let c=chapters[current];if(c&&!state.read.includes(c.path)){state.read.push(c.path);save();render()}}$('frame').addEventListener('load',()=>{setTimeout(()=>{syncSidebarButton();applySidebarState()},500);setTimeout(()=>{try{let d=$('frame').contentDocument;activeChapterDoc=d;let w=$('frame').contentWindow,check=()=>{let e=d.scrollingElement;if(e&&e.scrollTop+e.clientHeight>=e.scrollHeight-8)complete()};let savePosition=()=>{let y=w.scrollY||w.pageYOffset||d.scrollingElement?.scrollTop||d.documentElement?.scrollTop||d.body?.scrollTop||0;positions[chapters[current].path]=y;localStorage.setItem('course-reader-positions',JSON.stringify(positions));check()};w.addEventListener('scroll',savePosition,{passive:true});d.addEventListener('scroll',savePosition,{passive:true,capture:true});w.addEventListener('beforeunload',savePosition);let saved=skipPositionRestore?0:positions[chapters[current].path];skipPositionRestore=false;if(saved)setTimeout(()=>{w.scrollTo(0,saved);d.scrollingElement&&(d.scrollingElement.scrollTop=saved)},900);check();let installNav=()=>{if(d.querySelector('.nav-sidebar__content,[class*="nav-sidebar"]'))$('hideInner').classList.add('available');applyAppearance();};installNav();setTimeout(installNav,1200);let end=d.createElement('div');end.innerHTML='<button data-course-nav="prev">← Previous</button><button data-course-nav="next">Next →</button>';end.style.cssText='position:fixed;bottom:14px;right:18px;z-index:999999;display:flex;gap:8px';end.querySelectorAll('button').forEach(b=>b.style.cssText='padding:9px 13px;border:0;border-radius:7px;background:#3867f4;color:white;font:600 14px sans-serif;cursor:pointer');end.onclick=e=>{let x=e.target.dataset.courseNav;if(x)parent.postMessage({courseNav:x},'*')};d.body.append(end)}catch(e){}},300)});window.addEventListener('message',e=>{if(e.data?.courseNav==='next')openChapter(current+1);if(e.data?.courseNav==='prev')openChapter(current-1);if(Number.isInteger(e.data?.courseReaderNavigateIndex))openChapter(e.data.courseReaderNavigateIndex);if(e.data?.courseReaderAction==='toggleSidebarHidden')$('hideInner').click();if(e.data?.courseReaderSidebar!==undefined){let hidden=e.data.courseReaderSidebar;sidebarHidden=hidden;localStorage.setItem('course-reader-sidebar-hidden',hidden?'1':'0');$('hideInner').dataset.hidden=hidden?'true':'false';$('hideInner').classList.toggle('active',hidden);$('hideInner').textContent=hidden?'Show sidebar':'Hide sidebar'};});
+async function search(){let q=$('modalSearchInput').value.trim();if(!q)return;let box=$('searchBoxResults');box.textContent='Searching…';try{if($('aiSearch').checked&&ai.model){try{let d=await fetchJSON('/api/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...ai,question:q})});box.textContent=d.answer||d.error}catch(e){box.textContent='AI assistant needs the local backend (run start.sh/start.bat).'}return}let results;try{results=(await fetchJSON('/api/search?q='+encodeURIComponent(q))).results}catch(e){results=await clientSearch(q)}box.innerHTML=results.length?results.map(x=>`<button class="result" data-path="${x.path}"><b>${x.title}</b><small>${x.snippet}</small></button>`).join(''):'No matching course content.';box.querySelectorAll('.result').forEach(b=>b.onclick=()=>{let i=chapters.findIndex(c=>c.path===b.dataset.path);if(i>=0)openChapter(i,{skipRestore:true});$('searchModal').classList.remove('open')})}catch(e){box.textContent='Search failed: '+e.message}}$('searchToggle').onclick=()=>{let configured=Boolean(ai.model);$('aiSearchOption').hidden=!configured;$('aiSearch').checked=configured;$('searchModal').classList.add('open');$('modalSearchInput').focus()};$('searchClose').onclick=()=>$('searchModal').classList.remove('open');$('modalSearchGo').onclick=search;$('modalSearchInput').onkeydown=e=>{if(e.key==='Enter')search()};document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{document.querySelectorAll('.tab,.pane').forEach(x=>x.classList.remove('active'));t.classList.add('active');$(t.dataset.pane).classList.add('active')});$('hideInner').onclick=()=>{sidebarHidden=!sidebarHidden;localStorage.setItem('course-reader-sidebar-hidden',sidebarHidden?'1':'0');syncSidebarButton();$('frame').contentWindow?.postMessage({courseReaderAction:'setSidebarHidden',hidden:sidebarHidden},'*')};const app=document.querySelector('.app'),resize=$('resizer');$('collapse').onclick=()=>{app.classList.toggle('panelCollapsed');$('collapse').textContent=app.classList.contains('panelCollapsed')?'☰':'×'};let resizing=false;resize.onpointerdown=e=>{resizing=true;resize.classList.add('dragging');resize.setPointerCapture(e.pointerId)};resize.onpointermove=e=>{if(resizing){let width=Math.max(220,Math.min(620,e.clientX));app.style.gridTemplateColumns=`${width}px 7px 1fr`;localStorage.setItem('course-panel-width',width)}};resize.onpointerup=()=>{resizing=false;resize.classList.remove('dragging')};let savedWidth=localStorage.getItem('course-panel-width');if(savedWidth)app.style.gridTemplateColumns=`${savedWidth}px 7px 1fr`;$('bottomPrev').onclick=()=>openChapter(current-1);$('bottomNext').onclick=()=>openChapter(current+1);$('first').onclick=()=>openChapter(0);$('prev').onclick=()=>openChapter(current-1);$('next').onclick=()=>openChapter(current+1);$('last').onclick=()=>openChapter(chapters.length-1);$('theme').onclick=()=>{state.theme=state.theme==='dark'?'light':'dark';save();setTheme()};$('notesOpen').onclick=()=>$('notes').classList.add('open');$('notesClose').onclick=()=>$('notes').classList.remove('open');$('maximize').onclick=()=>$('notes').classList.toggle('max');$('editMode').onclick=()=>{$('editor').style.display='block';$('preview').style.display='none'};$('previewMode').onclick=()=>{$('preview').innerHTML=renderMD(state.notes);$('editor').style.display='none';$('preview').style.display='block'};$('editor').oninput=()=>{state.notes=$('editor').value;save();updateNotes(false)};function insert(x){let e=$('editor'),p=e.selectionStart;e.setRangeText(x,p,e.selectionEnd,'end');e.focus();state.notes=e.value;save();updateNotes(false)}$('addTask').onclick=()=>insert('- [ ] ');$('addCallout').onclick=()=>insert('> [!NOTE]\n> ');$('helpBtn').onclick=()=>$('help').classList.toggle('open');$('export').onclick=()=>{let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([state.notes],{type:'text/markdown'}));a.download='course-notes.md';a.click();URL.revokeObjectURL(a.href)};$('import').onclick=()=>$('importFile').click();$('importFile').onchange=e=>{let f=e.target.files[0];if(f){let r=new FileReader;r.onload=()=>{state.notes=r.result;save();updateNotes()};r.readAsText(f)}};document.onkeydown=e=>{if(e.altKey&&e.key==='ArrowRight')openChapter(current+1);if(e.altKey&&e.key==='ArrowLeft')openChapter(current-1)};function applyAppearance(){let r=document.querySelector('.reader');r.classList.remove('reader-white','reader-caramel','reader-black');r.classList.add('reader-'+(ai.bg||'white'));r.style.setProperty('--content-width',ai.width||'100%');r.style.setProperty('--reader-font',ai.font||'system-ui');r.style.setProperty('--reader-size',ai.size||'14px');try{let d=$('frame').contentDocument,st=d.getElementById('readerAppearance')||d.head.appendChild(d.createElement('style'));st.id='readerAppearance';st.textContent=`body{max-width:${ai.width||'100%'}!important;margin:0 auto!important;font-family:${ai.font||'system-ui'}!important;font-size:${ai.size||'14px'}!important}` }catch(e){}}function saveAI(){ai={provider:$('provider').value,apiKey:$('apiKey').value,model:$('model').value,language:$('courseLanguage').value,bg:$('readerBg').value,width:$('contentWidth').value,font:$('readerFont').value,size:$('readerSize').value};localStorage.setItem(aiKey,JSON.stringify(ai));if($('saveBackend').checked)fetch('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(ai)})}function fillAI(){ $('provider').value=ai.provider;$('apiKey').value=ai.apiKey;$('courseLanguage').value=ai.language;$('readerBg').value=ai.bg||'white';$('contentWidth').value=ai.width||'100%';$('readerFont').value=ai.font||'system-ui';$('readerSize').value=ai.size||'14px';applyAppearance()}$('settings').onclick=async()=>{$('settingsPanel').classList.toggle('open');fillAI();try{let d=await fetchJSON('/api/settings');if(d.provider){ai=d;fillAI();$('saveBackend').checked=true}}catch(e){}};$('loadModels').onclick=async()=>{saveAI();$('model').innerHTML='<option>Loading…</option>';try{let d=await fetchJSON('/api/models',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(ai)});if(d.error)throw Error(d.error);$('model').innerHTML=d.models.map(x=>`<option>${x}</option>`).join('');if(ai.model)$('model').value=ai.model;$('answer').textContent='Connection successful.'}catch(e){$('answer').textContent=(e.message==='backend-unavailable'?'This needs the local backend (run start.sh/start.bat).':'Connection failed: '+e.message)}};['readerBg','contentWidth','readerFont','readerSize'].forEach(id=>$(id).onchange=()=>{saveAI();applyAppearance()});$('ask').onclick=async()=>{saveAI();let q=$('question').value.trim();if(!q)return;$('answer').textContent='Thinking with course context…';try{let d=await fetchJSON('/api/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...ai,question:q})});$('answer').textContent=d.answer||d.error}catch(e){$('answer').textContent=(e.message==='backend-unavailable'?'This needs the local backend (run start.sh/start.bat).':'Request failed: '+e.message)}};setTheme();updateNotes();applyAppearance();syncSidebarButton();render();openChapter(current);
+const CODE_KEYWORDS={python:"False None True and as assert async await break class continue def del elif else except finally for from global if import in is lambda nonlocal not or pass raise return try while with yield".split(' '),php:"abstract and array as break callable case catch class clone const continue declare default do echo else elseif empty enddeclare endfor endforeach endif endswitch endwhile enum extends final finally fn for foreach function global goto if implements include include_once instanceof insteadof interface isset list match namespace new or print private protected public readonly require require_once return static switch throw trait try unset use var while xor yield".split(' '),java:"abstract assert boolean break byte case catch char class const continue default do double else enum extends final finally float for goto if implements import instanceof int interface long native new package private protected public record return sealed short static strictfp super switch synchronized this throw throws transient try var void volatile while yield permits".split(' '),go:"break default func interface select case defer go map struct chan else goto package switch const fallthrough if range type continue for import return var".split(' '),javascript:"break case catch class const continue debugger default delete do else export extends finally for function if import in instanceof let new return super switch this throw try typeof var void while with yield async await static get set of".split(' '),bash:"if then else elif fi for while do done case esac function in select until time".split(' ')};
+CODE_KEYWORDS.py=CODE_KEYWORDS.python;CODE_KEYWORDS.js=CODE_KEYWORDS.javascript;CODE_KEYWORDS.sh=CODE_KEYWORDS.bash;
+function highlightGeneric(code,lang){
+  let kws=new Set(CODE_KEYWORDS[lang]||[]);
+  let escaped=esc(code);
+  let tokenRe=/(\/\/[^\n]*|#[^\n]*|\/\*[\s\S]*?\*\/)|("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`)|(\b\d+\.?\d*\b)|(\b[A-Za-z_]\w*\b)/g;
+  return escaped.replace(tokenRe,(m,com,str,num,word)=>{
+    if(com)return `<span class="tok-com">${com}</span>`;
+    if(str)return `<span class="tok-str">${str}</span>`;
+    if(num)return `<span class="tok-num">${num}</span>`;
+    if(word)return kws.has(word)?`<span class="tok-kw">${word}</span>`:word;
+    return m;
+  });
+}
+function highlightMarkup(code){
+  let escaped=esc(code);
+  return escaped.replace(/(&lt;!--[\s\S]*?--&gt;)|(&lt;\/?[a-zA-Z][\w:-]*)((?:\s+[\w:-]+(?:=(?:"[^"]*"|'[^']*'))?)*)(\s*\/?&gt;)/g,(m,comment,open,attrs,close)=>{
+    if(comment)return `<span class="tok-com">${comment}</span>`;
+    let attrHl=attrs.replace(/([\w:-]+)(=)("[^"]*"|'[^']*')?/g,(am,name,eq,val)=>val?`<span class="tok-attr">${name}</span>${eq}<span class="tok-str">${val}</span>`:`<span class="tok-attr">${name}</span>`);
+    return `<span class="tok-tag">${open}</span>${attrHl}<span class="tok-tag">${close}</span>`;
+  });
+}
+function highlightJson(code){
+  let escaped=esc(code);
+  return escaped.replace(/("(?:[^"\\]|\\.)*")(\s*:)?|(\b(?:true|false|null)\b)|(-?\b\d+\.?\d*(?:[eE][+-]?\d+)?\b)/g,(m,str,colon,lit,num)=>{
+    if(str)return colon?`<span class="tok-attr">${str}</span>${colon}`:`<span class="tok-str">${str}</span>`;
+    if(lit)return `<span class="tok-kw">${lit}</span>`;
+    if(num)return `<span class="tok-num">${num}</span>`;
+    return m;
+  });
+}
+function highlightCode(code,lang){
+  let l=(lang||'').toLowerCase();
+  if(l==='xml'||l==='html')return highlightMarkup(code);
+  if(l==='json')return highlightJson(code);
+  if(CODE_KEYWORDS[l])return highlightGeneric(code,l);
+  return esc(code);
+}
+function renderMarkdownBody(md){
+  let lines=md.replace(/\r\n/g,'\n').split('\n'),html='',i=0,listStack=null;
+  function closeList(){if(listStack){html+=`</${listStack}>`;listStack=null}}
+  function inline(s){
+    s=esc(s);
+    s=s.replace(/`([^`]+)`/g,(m,c)=>`<code>${c}</code>`);
+    s=s.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
+    s=s.replace(/\*([^*]+)\*/g,'<em>$1</em>');
+    s=s.replace(/\[([^\]]+)\]\(([^)]+)\)/g,(m,t,u)=>`<a href="${u}" target="_blank" rel="noopener">${t}</a>`);
+    return s;
+  }
+  while(i<lines.length){
+    let line=lines[i];
+    let fence=line.match(/^```\s*([\w+-]*)\s*$/);
+    if(fence){
+      closeList();
+      let lang=fence[1],codeLines=[];
+      i++;
+      while(i<lines.length&&!/^```\s*$/.test(lines[i])){codeLines.push(lines[i]);i++}
+      i++;
+      let code=codeLines.join('\n');
+      html+=`<pre class="code-block"${lang?` data-lang="${lang}"`:''}><code>${highlightCode(code,lang)}</code></pre>`;
+      continue;
+    }
+    let h=line.match(/^(#{1,4})\s+(.*)$/);
+    if(h){closeList();html+=`<h${h[1].length}>${inline(h[2])}</h${h[1].length}>`;i++;continue}
+    let bq=line.match(/^>\s?(.*)$/);
+    if(bq){closeList();html+=`<blockquote>${inline(bq[1])}</blockquote>`;i++;continue}
+    let ul=line.match(/^[-*]\s+(.*)$/);
+    if(ul){if(listStack!=='ul'){closeList();html+='<ul>';listStack='ul'}html+=`<li>${inline(ul[1])}</li>`;i++;continue}
+    let ol=line.match(/^\d+\.\s+(.*)$/);
+    if(ol){if(listStack!=='ol'){closeList();html+='<ol>';listStack='ol'}html+=`<li>${inline(ol[1])}</li>`;i++;continue}
+    if(line.trim()===''){closeList();i++;continue}
+    closeList();
+    html+=`<p>${inline(line)}</p>`;
+    i++;
+  }
+  closeList();
+  return html;
+}
+function renderMarkdownPage(md,title){
+  let body=renderMarkdownBody(md);
+  return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(title||'')}</title><style>
+:root{--bg:#fff;--text:#15233b;--muted:#5b6b85;--line:#d9e1ed;--card:#f5f7fb;--accent:#3867f4;--tok-kw:#a626a4;--tok-str:#50a14f;--tok-com:#a0a1a7;--tok-num:#986801;--tok-tag:#e45649;--tok-attr:#986801}
+@media (prefers-color-scheme: dark){:root{--bg:#0b1120;--text:#e7edf7;--muted:#95a3bd;--line:#233052;--card:#111a2e;--accent:#5b8cff;--tok-kw:#c678dd;--tok-str:#98c379;--tok-com:#7f848e;--tok-num:#d19a66;--tok-tag:#e06c75;--tok-attr:#e5c07b}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 -apple-system,Segoe UI,Roboto,sans-serif;padding:40px 20px}
+article{max-width:760px;margin:0 auto}h1,h2,h3,h4{margin-top:1.4em}a{color:var(--accent)}
+code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.9em;background:var(--card);padding:.1em .35em;border-radius:4px}
+pre.code-block{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;overflow-x:auto}
+pre.code-block code{background:none;padding:0;font-size:14px;line-height:1.5}
+blockquote{border-left:3px solid var(--accent);margin:1em 0;padding:.4em 1em;color:var(--muted);background:var(--card);border-radius:0 8px 8px 0}
+.tok-kw{color:var(--tok-kw);font-weight:600}.tok-str{color:var(--tok-str)}.tok-com{color:var(--tok-com);font-style:italic}.tok-num{color:var(--tok-num)}.tok-tag{color:var(--tok-tag)}.tok-attr{color:var(--tok-attr)}
+</style></head><body><article>${body}</article></body></html>`;
+}
+async function fetchJSON(url,opts){
+  let r=await fetch(url,opts);
+  let ct=r.headers.get('content-type')||'';
+  if(!r.ok||!ct.includes('json'))throw new Error('backend-unavailable');
+  return r.json();
+}
+let chapterTextCache={};
+async function chapterText(path){
+  if(chapterTextCache[path]!==undefined)return chapterTextCache[path];
+  try{
+    let raw=await (await fetch(path)).text();
+    let text;
+    if(/\.md$/i.test(path)){text=raw}
+    else{let doc=new DOMParser().parseFromString(raw,'text/html');text=doc.body?doc.body.textContent:''}
+    text=text.replace(/\s+/g,' ').trim();
+    chapterTextCache[path]=text;
+    return text;
+  }catch(e){chapterTextCache[path]='';return ''}
+}
+async function clientSearch(query,limit=8){
+  let needle=query.toLowerCase(),hits=[];
+  for(let c of chapters){
+    let text=await chapterText(c.path);
+    let idx=text.toLowerCase().indexOf(needle);
+    if(idx>=0){
+      let start=Math.max(0,idx-60),end=Math.min(text.length,idx+needle.length+160);
+      hits.push({path:c.path,title:c.title,snippet:(start>0?'…':'')+text.slice(start,end)+(end<text.length?'…':'')});
+      if(hits.length>=limit)break;
+    }
+  }
+  return hits;
+}
 </script></body></html>
 '''
 
@@ -89,13 +213,19 @@ def item_title(path: Path) -> str:
     return chapter_title(path.name)
 
 
+def chapter_source_files(base: Path, *, recursive: bool):
+    """Chapter-eligible files: exported HTML plus Markdown, sorted together so numbering interleaves naturally."""
+    glob = base.rglob if recursive else base.glob
+    return sorted(list(glob("*.html")) + list(glob("*.md")))
+
+
 def asset_groups(root: Path, *, exclude_html: bool = True):
     """Return files grouped by their immediate/relative course folder."""
     buckets = {}
     for path in sorted(root.rglob("*")):
         if not path.is_file() or path.name in GENERATED_NAMES:
             continue
-        if exclude_html and path.suffix.lower() == ".html":
+        if exclude_html and path.suffix.lower() in (".html", ".md"):
             continue
         relative = path.relative_to(root)
         group = str(relative.parent) if str(relative.parent) != "." else "Files in this folder"
@@ -126,8 +256,8 @@ def course_data():
     chapter_items = []
     order = 1
 
-    # Top-level lesson exports are chapters outside a module.
-    for path in sorted(ROOT.glob("*.html")):
+    # Top-level lesson exports (HTML or Markdown) are chapters outside a module.
+    for path in chapter_source_files(ROOT, recursive=False):
         if path.name in GENERATED_NAMES:
             continue
         chapter_items.append({"id": len(chapter_items), "order": order, "title": item_title(path),
@@ -137,7 +267,7 @@ def course_data():
     modules = []
     for module in module_dirs:
         entries = []
-        for path in sorted(module.rglob("*.html")):
+        for path in chapter_source_files(module, recursive=True):
             entries.append({"id": len(chapter_items), "order": order, "title": item_title(path),
                             "path": path.relative_to(ROOT).as_posix(), "module": module.name})
             chapter_items.append(entries[-1])
@@ -145,9 +275,9 @@ def course_data():
         modules.append({"name": module.name, "chapters": entries, "files": asset_groups(module)})
 
     global_groups = []
-    # Plain Markdown/text files next to course chapters belong to Course files.
+    # Plain text files next to course chapters belong to Course files (Markdown is now rendered as a chapter instead).
     top_files = [{"name": p.name, "path": p.name} for p in sorted(ROOT.iterdir())
-                 if p.is_file() and p.suffix.lower() in {".md", ".txt"}]
+                 if p.is_file() and p.suffix.lower() == ".txt"]
     if top_files:
         global_groups.append({"name": "Files in this folder", "files": top_files})
     # Non-module folders appear separately in general Course files.
@@ -172,12 +302,15 @@ class TextExtractor(HTMLParser):
 
 
 def source_documents():
-    for path in ROOT.rglob("*.html"):
+    for path in list(ROOT.rglob("*.html")) + list(ROOT.rglob("*.md")):
         if path.name in GENERATED_NAMES:
             continue
         try:
-            parser = TextExtractor(); parser.feed(path.read_text(encoding="utf-8", errors="ignore"))
-            text = re.sub(r"\s+", " ", " ".join(parser.parts))
+            if path.suffix.lower() == ".md":
+                text = re.sub(r"\s+", " ", path.read_text(encoding="utf-8", errors="ignore"))
+            else:
+                parser = TextExtractor(); parser.feed(path.read_text(encoding="utf-8", errors="ignore"))
+                text = re.sub(r"\s+", " ", " ".join(parser.parts))
             if text: yield path, item_title(path), text
         except OSError:
             continue
