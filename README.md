@@ -1,5 +1,16 @@
 # LearnFlow Navigator
 
+![Python](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)
+![Stdlib only](https://img.shields.io/badge/dependencies-stdlib%20only-informational)
+![JavaScript](https://img.shields.io/badge/JavaScript-Vanilla-F7DF1E?logo=javascript&logoColor=black)
+![HTML5](https://img.shields.io/badge/HTML5-E34F26?logo=html5&logoColor=white)
+![SQLite FTS5](https://img.shields.io/badge/SQLite-FTS5-003B57?logo=sqlite&logoColor=white)
+![sentence-transformers](https://img.shields.io/badge/sentence--transformers-optional-yellow)
+![Ollama](https://img.shields.io/badge/Ollama-local-000000)
+![OpenAI](https://img.shields.io/badge/OpenAI-API-412991?logo=openai&logoColor=white)
+![Anthropic](https://img.shields.io/badge/Anthropic-API-D97757)
+![License](https://img.shields.io/badge/license-unspecified-lightgrey)
+
 A standalone, offline-first course viewer for folders of exported HTML course content (e.g. Rise 360 exports). Point it at a course folder and it builds a single self-contained `index.html` reader — no web server, no framework, no external services required.
 
 ## Features
