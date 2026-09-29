@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Control Flow and Functions</title>
+<style>
+  :root{--bg:#0b1120;--card:#111a2e;--text:#e7edf7;--muted:#95a3bd;--accent:#5b8cff;--line:#233052}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 -apple-system,Segoe UI,Roboto,sans-serif;padding:40px 20px}
+  article{max-width:720px;margin:0 auto}
+  .eyebrow{color:var(--accent);font-weight:700;letter-spacing:.08em;text-transform:uppercase;font-size:12px}
+  h1{font-size:32px;margin:6px 0 24px}
+  h2{font-size:20px;margin-top:36px;border-bottom:1px solid var(--line);padding-bottom:8px}
+  p{color:var(--text)}
+  .muted{color:var(--muted)}
+  pre{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;overflow-x:auto}
+  code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:14px}
+  .callout{background:var(--card);border-left:3px solid var(--accent);border-radius:8px;padding:12px 16px;margin:20px 0}
+</style>
+<script src="course-reader-chapter-tools.js" data-course-reader-tools="1"></script></head>
+<body>
+<article>
+  <div class="eyebrow">Chapter 3</div>
+  <h1>Control Flow and Functions</h1>
+  <p>So far every program has run top to bottom, one line after another. Control flow lets a program make decisions and repeat work.</p>
+
+  <h2>if / elif / else</h2>
+  <pre><code>age = 20
+
+if age &lt; 13:
+    print("child")
+elif age &lt; 20:
+    print("teenager")
+else:
+    print("adult")</code></pre>
+  <p>Python checks each condition in order and runs the first block whose condition is <code>True</code>.</p>
+
+  <h2>Loops</h2>
+  <p><code>for</code> loops walk through a sequence; <code>while</code> loops repeat as long as a condition holds:</p>
+  <pre><code>for fruit in ["apple", "banana", "cherry"]:
+    print(fruit)
+
+count = 3
+while count &gt; 0:
+    print(count)
+    count -= 1</code></pre>
+
+  <h2>Functions</h2>
+  <p>A function packages a piece of logic under a name so it can be reused with different inputs:</p>
+  <pre><code>def greet(name):
+    return f"Hello, {name}!"
+
+print(greet("Ada"))      # Hello, Ada!
+print(greet("Linus"))    # Hello, Linus!</code></pre>
+  <p><code>name</code> is a <b>parameter</b> — a placeholder for whatever value is passed in when the function is called. <code>return</code> sends a value back to the caller.</p>
+
+  <div class="callout">
+    <b>Default values</b><br>
+    <code>def greet(name="friend"):</code> lets you call <code>greet()</code> with no arguments and still get a sensible result: <code>"Hello, friend!"</code>.
+  </div>
+
+  <h2>Putting it together</h2>
+  <pre><code>def is_even(n):
+    return n % 2 == 0
+
+for number in range(1, 6):
+    label = "even" if is_even(number) else "odd"
+    print(f"{number} is {label}")</code></pre>
+
+  <p class="muted">That's the core of Python: variables hold values, control flow decides what runs, and functions turn logic into something reusable. Everything else in the language builds on these three ideas.</p>
+</article>
+</body>
+</html>

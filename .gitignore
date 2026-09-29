@@ -1,6 +1,7 @@
 # Generated course content and source assets
 *.html
 !index.html
+!docs/*.html
 resources/
 *.zip
 

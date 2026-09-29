@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Introduction to Python</title>
+<style>
+  :root{--bg:#0b1120;--card:#111a2e;--text:#e7edf7;--muted:#95a3bd;--accent:#5b8cff;--line:#233052}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 -apple-system,Segoe UI,Roboto,sans-serif;padding:40px 20px}
+  article{max-width:720px;margin:0 auto}
+  .eyebrow{color:var(--accent);font-weight:700;letter-spacing:.08em;text-transform:uppercase;font-size:12px}
+  h1{font-size:32px;margin:6px 0 24px}
+  h2{font-size:20px;margin-top:36px;border-bottom:1px solid var(--line);padding-bottom:8px}
+  p{color:var(--text)}
+  .muted{color:var(--muted)}
+  pre{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;overflow-x:auto}
+  code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:14px}
+  .callout{background:var(--card);border-left:3px solid var(--accent);border-radius:8px;padding:12px 16px;margin:20px 0}
+  ul{padding-left:22px}
+</style>
+<script src="course-reader-chapter-tools.js" data-course-reader-tools="1"></script></head>
+<body>
+<article>
+  <div class="eyebrow">Chapter 1</div>
+  <h1>Introduction to Python</h1>
+  <p>Python is a general-purpose programming language known for readable syntax and a huge ecosystem of libraries. It is used for web backends, data analysis, automation scripts, and teaching programming itself — it's often the first language people learn.</p>
+
+  <h2>Why Python?</h2>
+  <ul>
+    <li>Reads close to plain English — fewer symbols to memorize than many other languages.</li>
+    <li>One official interpreter, available on Windows, macOS, and Linux.</li>
+    <li>A massive standard library plus third-party packages for almost anything (web, data science, automation).</li>
+  </ul>
+
+  <h2>Your first program</h2>
+  <p>Every Python tutorial starts the same way. Save this as <code>hello.py</code> and run it with <code>python3 hello.py</code>:</p>
+  <pre><code>print("Hello, World!")</code></pre>
+  <p>The <code>print()</code> function writes text to the screen. No semicolons, no boilerplate — this is a complete, runnable program.</p>
+
+  <div class="callout">
+    <b>Try it</b><br>
+    Change the text inside the quotes and run the file again. Python re-reads the file from the top every time you run it.
+  </div>
+
+  <h2>How code is organized</h2>
+  <p>Python uses <b>indentation</b> — not curly braces — to group lines of code together. A block starts after a colon (<code>:</code>) and every line inside it must be indented by the same amount (4 spaces is the convention):</p>
+  <pre><code>if 2 &gt; 1:
+    print("Two is bigger than one")</code></pre>
+
+  <p class="muted">Next: variables and the basic data types you'll use in almost every program.</p>
+</article>
+</body>
+</html>

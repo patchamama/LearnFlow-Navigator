@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Variables and Data Types</title>
+<style>
+  :root{--bg:#0b1120;--card:#111a2e;--text:#e7edf7;--muted:#95a3bd;--accent:#5b8cff;--line:#233052}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 -apple-system,Segoe UI,Roboto,sans-serif;padding:40px 20px}
+  article{max-width:720px;margin:0 auto}
+  .eyebrow{color:var(--accent);font-weight:700;letter-spacing:.08em;text-transform:uppercase;font-size:12px}
+  h1{font-size:32px;margin:6px 0 24px}
+  h2{font-size:20px;margin-top:36px;border-bottom:1px solid var(--line);padding-bottom:8px}
+  p{color:var(--text)}
+  .muted{color:var(--muted)}
+  pre{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;overflow-x:auto}
+  code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:14px}
+  table{width:100%;border-collapse:collapse;margin:16px 0}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.04em}
+  .callout{background:var(--card);border-left:3px solid var(--accent);border-radius:8px;padding:12px 16px;margin:20px 0}
+</style>
+<script src="course-reader-chapter-tools.js" data-course-reader-tools="1"></script></head>
+<body>
+<article>
+  <div class="eyebrow">Chapter 2</div>
+  <h1>Variables and Data Types</h1>
+  <p>A variable is a name that points to a value. Python figures out the type of a value automatically — you never declare it up front.</p>
+
+  <pre><code>name = "Ada"
+age = 36
+is_student = False</code></pre>
+
+  <h2>The built-in types you'll use daily</h2>
+  <table>
+    <tr><th>Type</th><th>Example</th><th>Meaning</th></tr>
+    <tr><td><code>int</code></td><td><code>42</code></td><td>Whole number</td></tr>
+    <tr><td><code>float</code></td><td><code>3.14</code></td><td>Decimal number</td></tr>
+    <tr><td><code>str</code></td><td><code>"hello"</code></td><td>Text</td></tr>
+    <tr><td><code>bool</code></td><td><code>True</code> / <code>False</code></td><td>Yes/no value</td></tr>
+    <tr><td><code>list</code></td><td><code>[1, 2, 3]</code></td><td>Ordered, changeable collection</td></tr>
+    <tr><td><code>dict</code></td><td><code>{"key": "value"}</code></td><td>Key-value pairs</td></tr>
+  </table>
+
+  <h2>Checking a type at runtime</h2>
+  <pre><code>x = 10
+print(type(x))   # &lt;class 'int'&gt;
+
+x = "now a string"
+print(type(x))   # &lt;class 'str'&gt;</code></pre>
+  <p>This is called <b>dynamic typing</b>: the same variable name can point to values of different types over its lifetime. The type belongs to the value, not to the variable.</p>
+
+  <h2>Working with lists</h2>
+  <pre><code>fruits = ["apple", "banana", "cherry"]
+fruits.append("date")
+print(fruits[0])        # apple
+print(len(fruits))      # 4</code></pre>
+
+  <div class="callout">
+    <b>Note</b><br>
+    Python indexes start at <code>0</code>, so <code>fruits[0]</code> is the first item, not the second.
+  </div>
+
+  <p class="muted">Next: making decisions with <code>if</code>, repeating work with loops, and packaging logic into functions.</p>
+</article>
+</body>
+</html>
