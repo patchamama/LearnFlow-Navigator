@@ -19,6 +19,7 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
 ROOT = Path(__file__).resolve().parent
+GENERATED_NAMES = {"index.html", f"{ROOT.name}.html"}
 
 
 def chapter_title(filename: str) -> str:
@@ -28,12 +29,6 @@ def chapter_title(filename: str) -> str:
     name = re.sub(r"\s*-\s*ELO 25 Flows Development\s*-\s*Handout \(DE\)", "", name, flags=re.I)
     name = re.sub(r"^\d+\s+", "", name)
     return name.strip() or Path(filename).stem
-
-
-def chapters():
-    generated_names = {"index.html", f"{ROOT.name}.html"}
-    files = sorted(p.name for p in ROOT.glob("*.html") if p.name not in generated_names)
-    return [{"file": file, "title": chapter_title(file)} for file in files]
 
 
 APP = r'''<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Course Reader</title><style>
@@ -67,7 +62,7 @@ def asset_groups(root: Path, *, exclude_html: bool = True):
     """Return files grouped by their immediate/relative course folder."""
     buckets = {}
     for path in sorted(root.rglob("*")):
-        if not path.is_file() or path.name in {"index.html", f"{ROOT.name}.html"}:
+        if not path.is_file() or path.name in GENERATED_NAMES:
             continue
         if exclude_html and path.suffix.lower() == ".html":
             continue
@@ -82,7 +77,7 @@ def inject_chapter_tools():
     """Give each exported chapter a same-folder sidebar controller, even outside the viewer iframe."""
     tag = '<script src="course-reader-chapter-tools.js" data-course-reader-tools="1"></script>'
     for path in ROOT.rglob("*.html"):
-        if path.name in {"index.html", f"{ROOT.name}.html"}:
+        if path.name in GENERATED_NAMES:
             continue
         try:
             content = path.read_text(encoding="utf-8", errors="ignore")
@@ -101,7 +96,7 @@ def course_data():
 
     # Top-level lesson exports are chapters outside a module.
     for path in sorted(ROOT.glob("*.html")):
-        if path.name in {"index.html", f"{ROOT.name}.html"}:
+        if path.name in GENERATED_NAMES:
             continue
         chapter_items.append({"id": len(chapter_items), "order": order, "title": item_title(path),
                               "path": path.name, "module": None})
@@ -146,7 +141,7 @@ class TextExtractor(HTMLParser):
 
 def source_documents():
     for path in ROOT.rglob("*.html"):
-        if path.name in {"index.html", f"{ROOT.name}.html"}:
+        if path.name in GENERATED_NAMES:
             continue
         try:
             parser = TextExtractor(); parser.feed(path.read_text(encoding="utf-8", errors="ignore"))
@@ -286,7 +281,7 @@ class CourseHandler(SimpleHTTPRequestHandler):
 def serve(port=8765):
     build_search_index()
     print(f"Course Reader + local search: http://localhost:{port}")
-    ThreadingHTTPServer(("", port), CourseHandler).serve_forever()
+    ThreadingHTTPServer(("127.0.0.1", port), CourseHandler).serve_forever()
 
 def output_path():
     """Never overwrite an existing index; use the folder name as fallback."""
