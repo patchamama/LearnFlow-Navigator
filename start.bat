@@ -3,11 +3,13 @@ setlocal EnableExtensions
 cd /d "%~dp0"
 title Course Reader - Local Search
 set "MODE=serve"
-set "SEMANTIC=true"
+set "SEMANTIC=false"
+set "FOLDER="
 :args
 if "%~1"=="" goto args_done
-if /I "%~1"=="--build-only" set "MODE=build"
-if /I "%~1"=="--semantic" set "SEMANTIC=true"
+if /I "%~1"=="--build-only" set "MODE=build" & shift & goto args
+if /I "%~1"=="--semantic" set "SEMANTIC=true" & shift & goto args
+set "FOLDER=%~1"
 shift
 goto args
 :args_done
@@ -22,10 +24,10 @@ if not defined BASEPY (
   set "BASEPY=\"%LOCALPY%\python.exe\""
 )
 if "%MODE%"=="build" (
-  call %BASEPY% course_viewer.py --force-index
+  call %BASEPY% course_viewer.py --force-index "%FOLDER%"
   exit /b %ERRORLEVEL%
 )
-REM Full startup creates a local venv, installs all requirements, builds, and serves.
+REM Full startup creates a local venv, optionally installs requirements, builds, and serves.
 if not exist ".venv\Scripts\python.exe" call %BASEPY% -m venv .venv
 if not exist ".venv\Scripts\python.exe" (
   echo Failed to create local Python environment.
@@ -38,7 +40,7 @@ if "%SEMANTIC%"=="true" (
   "%PY%" -m pip install --no-cache-dir -r requirements.txt
   if errorlevel 1 echo Semantic model unavailable; SQLite FTS fallback remains active.
 )
-"%PY%" course_viewer.py --force-index --serve --port 8765
+"%PY%" course_viewer.py --force-index --serve --port 8765 "%FOLDER%"
 set "EXITCODE=%ERRORLEVEL%"
 echo.
 echo The Course Reader backend stopped with code %EXITCODE%.

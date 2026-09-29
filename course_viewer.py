@@ -7,10 +7,12 @@ Then open http://localhost:8765
 """
 from pathlib import Path
 import argparse
+import functools
 import json
 import re
 import sqlite3
 import struct
+import sys
 import threading
 import urllib.request
 import urllib.error
@@ -18,8 +20,37 @@ from html.parser import HTMLParser
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
-ROOT = Path(__file__).resolve().parent
+SCRIPT_DIR = Path(__file__).resolve().parent
+ROOT = SCRIPT_DIR
 GENERATED_NAMES = {"index.html", f"{ROOT.name}.html"}
+
+
+def set_root(folder: Path):
+    """Point the builder/server at a different course folder (creating it if needed)."""
+    global ROOT, GENERATED_NAMES
+    folder.mkdir(parents=True, exist_ok=True)
+    ROOT = folder
+    GENERATED_NAMES = {"index.html", f"{ROOT.name}.html"}
+
+
+def ensure_chapter_tools_asset():
+    """Copy the chapter-sidebar helper into ROOT when it targets a folder other than this script's own."""
+    src = SCRIPT_DIR / "course-reader-chapter-tools.js"
+    dest = ROOT / "course-reader-chapter-tools.js"
+    if src.resolve() != dest.resolve() and src.exists() and not dest.exists():
+        dest.write_bytes(src.read_bytes())
+
+
+def prompt_for_folder(current: Path) -> Path:
+    """Ask which folder to use when none was given and the current one has no course content."""
+    try:
+        entered = input(
+            f"No course chapters found in '{current}'.\n"
+            f"Enter a folder to use instead (e.g. examples), or press Enter to keep this one: "
+        ).strip()
+    except (EOFError, KeyboardInterrupt):
+        return current
+    return Path(entered).expanduser().resolve() if entered else current
 
 
 def chapter_title(filename: str) -> str:
@@ -75,6 +106,7 @@ def asset_groups(root: Path, *, exclude_html: bool = True):
 
 def inject_chapter_tools():
     """Give each exported chapter a same-folder sidebar controller, even outside the viewer iframe."""
+    ensure_chapter_tools_asset()
     tag = '<script src="course-reader-chapter-tools.js" data-course-reader-tools="1"></script>'
     for path in ROOT.rglob("*.html"):
         if path.name in GENERATED_NAMES:
@@ -310,7 +342,8 @@ class CourseHandler(SimpleHTTPRequestHandler):
 def serve(port=8765):
     build_search_index()
     print(f"Course Reader + local search: http://localhost:{port}")
-    ThreadingHTTPServer(("127.0.0.1", port), CourseHandler).serve_forever()
+    handler = functools.partial(CourseHandler, directory=str(ROOT))
+    ThreadingHTTPServer(("127.0.0.1", port), handler).serve_forever()
 
 def output_path():
     """Never overwrite an existing index; use the folder name as fallback."""
@@ -331,10 +364,20 @@ def build():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Build a standalone local course-reader HTML file")
+    parser.add_argument("folder", nargs="?", default=None,
+                         help="course folder to build/serve (defaults to this script's own folder; created if missing)")
     parser.add_argument("--force-index", action="store_true", help="replace index.html (normally it is preserved)")
     parser.add_argument("--serve", action="store_true", help="start local backend with course search")
     parser.add_argument("--port", type=int, default=8765)
     args = parser.parse_args()
+    if args.folder:
+        set_root(Path(args.folder).expanduser().resolve())
+    elif sys.stdin.isatty():
+        preview = course_data()
+        if not preview["chapters"] and not preview["modules"]:
+            chosen = prompt_for_folder(ROOT)
+            if chosen != ROOT:
+                set_root(chosen)
     if args.force_index:
         # Explicit opt-in prevents the default safeguard from overwriting index.html.
         inject_chapter_tools()

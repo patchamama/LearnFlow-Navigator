@@ -9,11 +9,27 @@
 ![Ollama](https://img.shields.io/badge/Ollama-local-000000)
 ![OpenAI](https://img.shields.io/badge/OpenAI-API-412991?logo=openai&logoColor=white)
 ![Anthropic](https://img.shields.io/badge/Anthropic-API-D97757)
-![License](https://img.shields.io/badge/license-unspecified-lightgrey)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 A standalone, offline-first course viewer for folders of exported HTML course content (e.g. Rise 360 exports). Point it at a course folder and it builds a single self-contained `index.html` reader — no web server, no framework, no external services required.
 
 **[Live demo](https://patchamama.github.io/LearnFlow-Navigator/)** — a 3-chapter Python tutorial served as a static reader, showing the chapter timeline, navigation, and notes panel (the optional search backend needs a local server, so it isn't part of this static demo).
+
+## Install
+
+Downloads the scripts from this repository into a local folder, drops a small Python-tutorial demo into `examples/`, and starts the reader — one line, no `git clone` needed:
+
+```bash
+# Linux/macOS
+curl -fsSL https://raw.githubusercontent.com/patchamama/LearnFlow-Navigator/master/install.sh -o /tmp/learnflow-install.sh && bash /tmp/learnflow-install.sh
+```
+
+```bat
+:: Windows (cmd)
+curl -fsSL -o install.bat https://raw.githubusercontent.com/patchamama/LearnFlow-Navigator/master/install.bat && install.bat
+```
+
+Both install into `./LearnFlow-Navigator` by default (pass a folder name as an argument to change that) and finish by running `start.sh`/`start.bat`. If the folder you land in has no course content yet, the reader will ask for one — type `examples` to open the bundled demo.
 
 ## Features
 
@@ -35,6 +51,23 @@ python3 course_viewer.py
 `index.html` is created only if it doesn't already exist; otherwise a `<folder-name>.html` fallback is created instead, so a hand-edited `index.html` is never overwritten. Use `--force-index` to deliberately refresh it.
 
 Run the builder again any time the folder structure or content changes — it embeds a fresh static manifest into the page.
+
+### Building a course in a specific folder
+
+Pass a folder as the first argument to build/serve a course anywhere on disk, instead of wherever `course_viewer.py` itself lives. The folder is created if it doesn't exist yet, so this also works for starting a brand-new course from scratch:
+
+```bash
+python3 course_viewer.py ./my-course --force-index
+./start.sh ./my-course        # same, but also serves it with search
+start.bat my-course
+```
+
+If you run the tool with no folder argument and the current folder has no chapters, it asks which folder to use instead of silently building an empty reader:
+
+```
+No course chapters found in '/path/to/LearnFlow-Navigator'.
+Enter a folder to use instead (e.g. examples), or press Enter to keep this one:
+```
 
 ## Local search backend (optional, recommended)
 
@@ -88,4 +121,4 @@ See `CLAUDE.md` for a deeper architecture walkthrough.
 
 ## License
 
-No license specified.
+[MIT](LICENSE)

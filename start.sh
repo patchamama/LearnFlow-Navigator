@@ -1,14 +1,21 @@
 #!/usr/bin/env bash
 set -euo pipefail
-cd "$(dirname "$0")"
+ORIG_PWD="$PWD"
 MODE="serve"
-SEMANTIC="true"
+SEMANTIC="false"
+FOLDER=""
 for arg in "$@"; do
   case "$arg" in
     --build-only) MODE="build" ;;
     --semantic) SEMANTIC="true" ;;
+    --*) ;;
+    *) FOLDER="$arg" ;;
   esac
 done
+if [[ -n "$FOLDER" && "$FOLDER" != /* ]]; then
+  FOLDER="$ORIG_PWD/$FOLDER"
+fi
+cd "$(dirname "$0")"
 PY=""
 for c in python3 python; do command -v "$c" >/dev/null 2>&1 && { PY="$c"; break; }; done
 if [[ -z "$PY" ]]; then
@@ -20,10 +27,10 @@ if [[ -z "$PY" ]]; then
   PY="$PWD/.python/bin/python3"
 fi
 if [[ "$MODE" == "build" ]]; then
-  "$PY" course_viewer.py --force-index
+  "$PY" course_viewer.py --force-index ${FOLDER:+"$FOLDER"}
   exit 0
 fi
 if [[ "$SEMANTIC" == "true" ]]; then
   "$PY" -m pip install --no-cache-dir -r requirements.txt || echo "Semantic model unavailable; SQLite FTS fallback remains active."
 fi
-"$PY" course_viewer.py --force-index --serve --port 8765
+"$PY" course_viewer.py --force-index --serve --port 8765 ${FOLDER:+"$FOLDER"}
