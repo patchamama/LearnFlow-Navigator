@@ -1,0 +1,21 @@
+# Generated course content and source assets
+*.html
+!index.html
+resources/
+*.zip
+
+# Local Course Reader runtime and private configuration
+course_index.sqlite
+course_index.build.sqlite
+.course-reader-settings.json
+.venv/
+.python/
+.python-src/
+__pycache__/
+*.py[cod]
+
+# Agent tooling state, not project code
+.atl/
+
+# Course access link/password, not project code
+README.txt
