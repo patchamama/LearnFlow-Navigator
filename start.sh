@@ -33,4 +33,4 @@ fi
 if [[ "$SEMANTIC" == "true" ]]; then
   "$PY" -m pip install --no-cache-dir -r requirements.txt || echo "Semantic model unavailable; SQLite FTS fallback remains active."
 fi
-"$PY" course_viewer.py --force-index --serve --port 8765 ${FOLDER:+"$FOLDER"}
+"$PY" course_viewer.py --force-index --serve${FOLDER:+"$FOLDER"}

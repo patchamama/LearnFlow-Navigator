@@ -40,7 +40,7 @@ if "%SEMANTIC%"=="true" (
   "%PY%" -m pip install --no-cache-dir -r requirements.txt
   if errorlevel 1 echo Semantic model unavailable; SQLite FTS fallback remains active.
 )
-"%PY%" course_viewer.py --force-index --serve --port 8765 "%FOLDER%"
+"%PY%" course_viewer.py --force-index --serve"%FOLDER%"
 set "EXITCODE=%ERRORLEVEL%"
 echo.
 echo The Course Reader backend stopped with code %EXITCODE%.
