@@ -13,7 +13,7 @@
 
 A standalone, offline-first course viewer for folders of exported HTML course content (e.g. Rise 360 exports). Point it at a course folder and it builds a single self-contained `index.html` reader — no web server, no framework, no external services required.
 
-The project started with a simple goal: present web pages saved with the **Save Page WE** browser extension (Chrome and Firefox add-on that saves a complete web page as a single, self-contained HTML file) as a navigable, course-style reader. Rise 360 exports, Markdown chapters, and search grew on top of that.
+The project started with a simple goal: present web pages saved with the [Save Page WE](https://github.com/lrq3000/save-page-we-browser-extension) browser extension (Chrome and Firefox add-on that saves a complete web page as a single, self-contained HTML file) as a navigable, course-style reader. Rise 360 exports, Markdown chapters, and search grew on top of that.
 
 **[Live demo](https://patchamama.github.io/LearnFlow-Navigator/)** — a Python tutorial served as a static reader: three HTML chapters plus a Markdown chapter showing off syntax-highlighted code blocks, chapter timeline, navigation, and notes panel. Search works there too — no backend is running, so it falls back to an in-browser, case-insensitive search across chapter text.
 
@@ -127,3 +127,8 @@ See `CLAUDE.md` for a deeper architecture walkthrough.
 ## License
 
 [MIT](LICENSE)
+
+## References
+
+- [Save Page WE (source code)](https://github.com/lrq3000/save-page-we-browser-extension) — browser extension that saves a complete web page as a single, self-contained HTML file.
+- [Save Page WE on the Chrome Web Store](https://chromewebstore.google.com/detail/save-page-we/dhhpefjklgkmgeafimnjhojgjamoafof)
